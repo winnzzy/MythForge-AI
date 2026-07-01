@@ -38,6 +38,7 @@ class ProviderStatus(str, enum.Enum):
 class TransactionStatus(str, enum.Enum):
     """Outcome of a provider transaction."""
 
+    PENDING = "pending"
     SUCCESS = "success"
     FAILURE = "failure"
     TIMEOUT = "timeout"
@@ -92,6 +93,7 @@ class LLMStreamChunk:
     delta: str = ""                 # incremental text
     finish_reason: Optional[str] = None
     tokens_out: int = 0
+    finished: bool = False
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -156,6 +158,24 @@ class ImageResponse:
     latency_ms: float = 0.0
     estimated_cost_usd: float = 0.0
     metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def __init__(
+        self,
+        images: Optional[List[ImageAsset]] = None,
+        assets: Optional[List[ImageAsset]] = None,
+        provider: str = "",
+        model: str = "",
+        latency_ms: float = 0.0,
+        estimated_cost_usd: float = 0.0,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        self.images = images or assets or []
+        self.provider = provider
+        self.model = model
+        self.latency_ms = latency_ms
+        self.estimated_cost_usd = estimated_cost_usd
+        self.metadata = metadata or {}
+        self.assets = self.images
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -289,7 +309,7 @@ class Transaction:
     provider: str = ""
     operation: str = ""
     capability: str = ""            # llm | image | audio
-    status: TransactionStatus = TransactionStatus.SUCCESS
+    status: TransactionStatus = TransactionStatus.PENDING
     started_at: str = field(default_factory=lambda: _now_iso())
     completed_at: Optional[str] = None
     duration_ms: float = 0.0

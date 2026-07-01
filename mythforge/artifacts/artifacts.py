@@ -25,16 +25,26 @@ from .versioning import ArtifactVersion
 # ---------------------------------------------------------------------------
 
 class ResearchArtifact(BaseArtifact):
-    """Research results: topics, findings, sources, summaries."""
+    """Research results: topics, findings, sources, summaries, and cultural notes."""
 
     def __init__(
         self,
         *,
         topic: str = "",
         summary: str = "",
-        findings: List[str] = field(default_factory=list) if False else None,
-        sources: List[Dict[str, str]] = None,
-        keywords: List[str] = None,
+        findings: Optional[List[str]] = None,
+        sources: Optional[List[Dict[str, str]]] = None,
+        keywords: Optional[List[str]] = None,
+        african_mythology: str = "",
+        historical_context: str = "",
+        characters: Optional[List[Dict[str, str]]] = None,
+        timeline: Optional[List[str]] = None,
+        locations: Optional[List[str]] = None,
+        themes: Optional[List[str]] = None,
+        cultural_notes: Optional[List[str]] = None,
+        pronunciation_notes: Optional[List[str]] = None,
+        bibliography: Optional[List[Dict[str, str]]] = None,
+        visual_style: str = "",
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -43,6 +53,16 @@ class ResearchArtifact(BaseArtifact):
         self.findings = findings or []
         self.sources = sources or []
         self.keywords = keywords or []
+        self.african_mythology = african_mythology
+        self.historical_context = historical_context
+        self.characters = characters or []
+        self.timeline = timeline or []
+        self.locations = locations or []
+        self.themes = themes or []
+        self.cultural_notes = cultural_notes or []
+        self.pronunciation_notes = pronunciation_notes or []
+        self.bibliography = bibliography or []
+        self.visual_style = visual_style
 
     @classmethod
     def artifact_type(cls) -> str:
@@ -55,6 +75,16 @@ class ResearchArtifact(BaseArtifact):
             "findings": self.findings,
             "sources": self.sources,
             "keywords": self.keywords,
+            "african_mythology": self.african_mythology,
+            "historical_context": self.historical_context,
+            "characters": self.characters,
+            "timeline": self.timeline,
+            "locations": self.locations,
+            "themes": self.themes,
+            "cultural_notes": self.cultural_notes,
+            "pronunciation_notes": self.pronunciation_notes,
+            "bibliography": self.bibliography,
+            "visual_style": self.visual_style,
         }
 
     def validate_content(self) -> List[str]:
@@ -71,6 +101,29 @@ class ResearchArtifact(BaseArtifact):
             parts.append("### Findings")
             for i, f in enumerate(self.findings, 1):
                 parts.append(f"{i}. {f}")
+            parts.append("")
+        if self.african_mythology:
+            parts.append("### African mythology")
+            parts.append(self.african_mythology)
+            parts.append("")
+        if self.historical_context:
+            parts.append("### Historical context")
+            parts.append(self.historical_context)
+            parts.append("")
+        if self.characters:
+            parts.append("### Characters")
+            for character in self.characters:
+                parts.append(f"- **{character.get('name', '')}**: {character.get('description', '')}")
+            parts.append("")
+        if self.timeline:
+            parts.append("### Timeline")
+            for item in self.timeline:
+                parts.append(f"- {item}")
+            parts.append("")
+        if self.locations:
+            parts.append("### Locations")
+            for item in self.locations:
+                parts.append(f"- {item}")
             parts.append("")
         if self.keywords:
             parts.append(f"**Keywords:** {', '.join(self.keywords)}")
@@ -91,6 +144,16 @@ class ResearchArtifact(BaseArtifact):
             findings=data.get("findings", []),
             sources=data.get("sources", []),
             keywords=data.get("keywords", []),
+            african_mythology=data.get("african_mythology", ""),
+            historical_context=data.get("historical_context", ""),
+            characters=data.get("characters", []),
+            timeline=data.get("timeline", []),
+            locations=data.get("locations", []),
+            themes=data.get("themes", []),
+            cultural_notes=data.get("cultural_notes", []),
+            pronunciation_notes=data.get("pronunciation_notes", []),
+            bibliography=data.get("bibliography", []),
+            visual_style=data.get("visual_style", ""),
             **kwargs,
         )
 

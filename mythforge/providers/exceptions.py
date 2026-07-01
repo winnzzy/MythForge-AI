@@ -59,6 +59,25 @@ class ProviderNotFoundError(ProviderError):
         )
 
 
+class ProviderNotAvailableError(ProviderError):
+    """Raised when a provider is requested but unavailable."""
+
+    def __init__(self, provider_name: str, **kwargs: Any) -> None:
+        super().__init__(
+            f"Provider '{provider_name}' is not available.",
+            provider=provider_name,
+            is_retryable=False,
+            **kwargs,
+        )
+
+
+class ProviderRegistrationError(ProviderError):
+    """Raised when provider registration fails."""
+
+    def __init__(self, message: str, **kwargs: Any) -> None:
+        super().__init__(message, is_retryable=False, **kwargs)
+
+
 class ProviderConfigError(ProviderError):
     """Raised when provider configuration is invalid or missing."""
 
@@ -85,8 +104,19 @@ class DuplicateProviderError(ProviderError):
 class ProviderUnavailableError(ProviderError):
     """Raised when a provider is temporarily unavailable (e.g. rate-limited)."""
 
-    def __init__(self, message: str, **kwargs: Any) -> None:
-        super().__init__(message, is_retryable=True, **kwargs)
+    def __init__(
+        self,
+        provider_or_message: str,
+        message: Optional[str] = None,
+        **kwargs: Any,
+    ) -> None:
+        if message is None:
+            msg = provider_or_message
+            provider = kwargs.pop("provider", "")
+        else:
+            msg = message
+            provider = provider_or_message
+        super().__init__(msg, provider=provider, is_retryable=True, **kwargs)
 
 
 class ProviderTimeoutError(ProviderError):
@@ -143,22 +173,22 @@ class ProviderUnhealthyError(ProviderError):
         )
 
 
-# ---------------------------------------------------------------------------
-# Retry
-# ---------------------------------------------------------------------------
-
 class MaxRetriesExceededError(ProviderError):
     """Raised when all retry attempts have been exhausted."""
 
     def __init__(
         self,
-        provider: str,
-        operation: str,
-        attempts: int,
+        provider: str = "",
+        operation: str = "",
+        attempts: Optional[int] = None,
         last_error: Optional[Exception] = None,
+        max_retries: Optional[int] = None,
         **kwargs: Any,
     ) -> None:
+        if attempts is None:
+            attempts = (max_retries or 0) + 1
         self.attempts = attempts
+        self.max_retries = max_retries if max_retries is not None else attempts - 1
         self.last_error = last_error
         last_msg = f": {last_error}" if last_error else ""
         super().__init__(
@@ -198,6 +228,13 @@ class ProviderBadRequestError(ProviderError):
             status_code=400,
             **kwargs,
         )
+
+
+class ProviderAPIError(ProviderError):
+    """Raised on non-authentication provider API failures."""
+
+    def __init__(self, message: str, **kwargs: Any) -> None:
+        super().__init__(message, is_retryable=True, **kwargs)
 
 
 class ProviderContentPolicyError(ProviderError):

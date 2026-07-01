@@ -28,7 +28,7 @@ from typing import Any, Dict, List, Optional, Type
 from .config import ProviderConfig, ProviderSDKConfig
 from .exceptions import ProviderNotAvailableError, ProviderRegistrationError
 from .health import HealthCheckConfig, HealthCheckManager
-from .interfaces import BaseProvider, LLMProvider, ImageProvider, AudioProvider
+from .interfaces import BaseProvider, LLMProvider, ImageProvider, AudioProvider, _provider_instances
 from .models import ProviderCapability
 from .retry import RetryConfig, with_retry
 from .transaction import ManifestHook, TransactionRecorder
@@ -214,6 +214,11 @@ class ProviderRegistry:
         if not provider.name:
             raise ProviderRegistrationError("Provider must have a 'name'.")
 
+        # Prefer the already-created instance for this provider name when one exists.
+        registered = _provider_instances.get(provider.name)
+        if isinstance(registered, BaseProvider):
+            provider = registered
+
         self._providers[provider.name] = provider
 
         # Register health check
@@ -236,6 +241,8 @@ class ProviderRegistry:
     def unregister(self, name: str) -> None:
         """Unregister a provider and clean up."""
         provider = self._providers.pop(name, None)
+        if name in _provider_instances:
+            del _provider_instances[name]
         if provider:
             self._health_manager.unregister(name)
             # Remove from primary mappings
@@ -257,11 +264,13 @@ class ProviderRegistry:
 
     def get(self, name: str) -> Optional[BaseProvider]:
         """Get a provider by name."""
+        if name in _provider_instances and isinstance(_provider_instances[name], BaseProvider):
+            return _provider_instances[name]
         return self._providers.get(name)
 
     def get_required(self, name: str) -> BaseProvider:
         """Get a provider by name, raising if not found."""
-        provider = self._providers.get(name)
+        provider = self.get(name)
         if provider is None:
             raise ProviderNotAvailableError(name)
         return provider

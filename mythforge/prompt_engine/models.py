@@ -202,9 +202,9 @@ class PromptTemplate:
     metadata: TemplateMetadata = field(default_factory=TemplateMetadata)
 
     @property
-    def variable_names(self) -> List[str]:
+    def variable_names(self) -> set[str]:
         """Return all variable names declared in this template."""
-        return [v.name for v in self.variables]
+        return {v.name for v in self.variables}
 
     @property
     def required_variables(self) -> List[str]:
@@ -234,6 +234,16 @@ class PromptTemplate:
             "variables": [v.to_dict() for v in self.variables],
             "metadata": self.metadata.to_dict(),
         }
+        if self.extends:
+            d["extends"] = self.extends
+        if self.partials:
+            d["partials"] = self.partials
+        if self.output_schema:
+            d["output_schema"] = self.output_schema
+        if self.negative_prompts:
+            d["negative_prompts"] = self.negative_prompts
+        if self.model_preferences:
+            d["model_preferences"] = self.model_preferences
         if self.extends:
             d["extends"] = self.extends
         if self.partials:
@@ -336,6 +346,11 @@ class PromptPackage:
     hash: str = ""
     tags: List[str] = field(default_factory=list)
 
+    def __post_init__(self) -> None:
+        """Populate a default token estimate when none was supplied."""
+        if self.estimated_tokens <= 0 and self.full_prompt:
+            self.estimated_tokens = self.token_estimate
+
     # ---- Convenience ------------------------------------------------------
 
     @property
@@ -356,7 +371,7 @@ class PromptPackage:
         if self.estimated_tokens:
             return self.estimated_tokens
         # Rough estimate: ~4 characters per token
-        return len(self.full_prompt) // 4
+        return max(1, len(self.full_prompt) // 4)
 
     # ---- Serialisation ----------------------------------------------------
 

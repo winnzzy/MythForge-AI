@@ -119,6 +119,11 @@ class PromptHasher:
             if value is None:
                 continue
             canonical[field] = self._normalise(value)
+
+        for key in sorted(data):
+            if key in canonical or key in {"id", "created_at", "metadata"}:
+                continue
+            canonical[key] = self._normalise(data[key])
         return canonical
 
     def _normalise(self, value: Any) -> Any:

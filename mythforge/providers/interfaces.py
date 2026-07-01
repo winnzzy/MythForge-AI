@@ -21,6 +21,7 @@ Usage::
 from __future__ import annotations
 
 import abc
+import functools
 from typing import AsyncIterator, List, Optional
 
 from .models import (
@@ -45,6 +46,9 @@ from .models import (
 # Base
 # ---------------------------------------------------------------------------
 
+_provider_instances: dict[str, object] = {}
+
+
 class BaseProvider(abc.ABC):
     """Common contract for **all** providers.
 
@@ -55,6 +59,23 @@ class BaseProvider(abc.ABC):
     # -- class-level declarations (override in subclass) --
     name: str = ""
     capabilities: List[ProviderCapability] = []
+
+    def __init_subclass__(cls, **kwargs: object) -> None:
+        super().__init_subclass__(**kwargs)
+
+        init_method = getattr(cls, "__init__", None)
+        if init_method is None or getattr(init_method, "_mythforge_wrapped", False):
+            return
+
+        @functools.wraps(init_method)
+        def wrapped_init(self: BaseProvider, *args: object, **kwargs: object) -> None:
+            init_method(self, *args, **kwargs)
+            provider_name = getattr(self, "name", None) or getattr(cls, "name", "")
+            if provider_name:
+                _provider_instances[str(provider_name)] = self
+
+        wrapped_init._mythforge_wrapped = True
+        cls.__init__ = wrapped_init
 
     # -- lifecycle hooks (optional) --
 

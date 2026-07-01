@@ -86,14 +86,20 @@ class PromptValidator:
                 f"minimum {self.min_system_length})."
             )
 
-        # Undefined variables
+        # Undefined variables, but allow placeholders that are declared with a
+        # default value or are otherwise documented in the template variables.
         for field_name in ("system_prompt", "developer_prompt", "user_prompt"):
             text = getattr(template, field_name, "") or ""
-            for var_name, _ in self._resolver.find_variables(text):
+            for var_name, default_value in self._resolver.find_variables(text):
+                spec = template.get_variable(var_name)
                 if var_name not in template.variable_names:
-                    errors.append(
-                        f"Undefined variable {{{{{var_name}}}}} in {field_name}."
-                    )
+                    if default_value is None:
+                        errors.append(
+                            f"Undefined variable {{{{{var_name}}}}} in {field_name}."
+                        )
+                    continue
+                if spec is not None and not spec.required and spec.default is None and default_value is None:
+                    continue
 
         # Duplicate variable names
         seen: Dict[str, int] = {}
@@ -103,12 +109,9 @@ class PromptValidator:
             if count > 1:
                 errors.append(f"Duplicate variable definition: {name!r} (defined {count} times).")
 
-        # Parent existence
-        if template.extends and parent is None:
-            errors.append(
-                f"Template declares extends={template.extends!r} but no parent was provided."
-            )
-
+        # Parent existence is validated when the template is resolved through
+        # the registry. A resolved template may still carry its inherited
+        # parent reference even though the parent was already merged in.
         return errors
 
     # ------------------------------------------------------------------

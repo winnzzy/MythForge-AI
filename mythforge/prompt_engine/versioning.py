@@ -93,6 +93,17 @@ class PromptVersion:
         """Return a new version with ``patch`` incremented."""
         return PromptVersion(major=self.major, minor=self.minor, patch=self.patch + 1)
 
+    def bump(self, part: str) -> PromptVersion:
+        """Return a new version bumped by the requested semantic part."""
+        part = (part or "").lower()
+        if part == "major":
+            return self.bump_major()
+        if part == "minor":
+            return self.bump_minor()
+        if part == "patch":
+            return self.bump_patch()
+        raise ValueError(f"Unsupported version bump part: {part!r}")
+
     # ---- Comparison -------------------------------------------------------
 
     @property

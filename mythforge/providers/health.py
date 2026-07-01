@@ -208,9 +208,10 @@ class HealthCheckManager:
         """Get the number of consecutive health-check failures."""
         return self._consecutive_failures.get(provider_name, 0)
 
-    def is_healthy(self, provider_name: str) -> bool:
+    async def is_healthy(self, provider_name: str) -> bool:
         """Check if a provider is considered healthy based on cached status."""
-        return self.get_status(provider_name) == ProviderStatus.HEALTHY
+        result = await self.check(provider_name, force=False)
+        return result.available and result.status == ProviderStatus.HEALTHY
 
     def get_all_statuses(self) -> Dict[str, ProviderStatus]:
         """Get cached statuses for all registered providers."""

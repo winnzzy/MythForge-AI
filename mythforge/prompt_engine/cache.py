@@ -27,11 +27,17 @@ Usage::
 from __future__ import annotations
 
 import abc
+import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from .models import PromptPackage
+
+try:
+    asyncio.get_event_loop()
+except RuntimeError:
+    asyncio.set_event_loop(asyncio.new_event_loop())
 
 
 @dataclass

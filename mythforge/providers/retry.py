@@ -207,11 +207,18 @@ async def with_retry(
             await asyncio.sleep(delay)
 
     # All retries exhausted
+    if last_error and isinstance(last_error, ProviderError):
+        if not is_retryable(config, last_error):
+            raise last_error
+        if config.max_retries == 0:
+            raise last_error
+
     raise MaxRetriesExceededError(
         provider=getattr(last_error, "provider", "unknown"),
         operation=getattr(last_error, "operation", getattr(coro_fn, "__name__", "unknown")),
         attempts=config.max_retries + 1,
         last_error=last_error,
+        max_retries=config.max_retries,
     )
 
 
